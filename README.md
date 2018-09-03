@@ -65,6 +65,3 @@
 #### rm
 说明：删除指定的文件   
 用法：rm [filename]
-
-
-test
