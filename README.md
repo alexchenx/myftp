@@ -67,3 +67,4 @@
 用法：rm [filename]
 
 
+test
