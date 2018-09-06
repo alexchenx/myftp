@@ -1,1 +1,8 @@
-{"username": "alex", "password": "e10adc3949ba59abbe56e057f20f883e", "home": "D:\\PycharmProjects\\MyProjects\\myftp\\server\\FTP_DATA\\alex", "quota": 1073741824, "current_quota": 20466770, "current_dir": "D:\\PycharmProjects\\MyProjects\\myftp\\server\\FTP_DATA\\alex"}
+{
+  "username": "alex",
+  "password": "e10adc3949ba59abbe56e057f20f883e",
+  "home": "D:\\PycharmProjects\\MyProjects\\myftp\\server\\FTP_DATA\\alex",
+  "quota": 1073741824,
+  "current_quota": 76140659,
+  "current_dir": "D:\\PycharmProjects\\MyProjects\\myftp\\server\\FTP_DATA\\alex"
+}

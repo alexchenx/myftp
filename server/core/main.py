@@ -154,8 +154,8 @@ class FTPServer:
 
     def _get(self, cmd_list):
         if self.verify_search_command_parameter(cmd_list) and self.verify_action_command_parameter(cmd_list):
-            file_name = cmd_list[1]
-            file_path = os.path.join(self.user_data["current_dir"], file_name)
+            file_path = os.path.normpath("%s/%s" % (self.user_data["current_dir"], cmd_list[1]))
+            file_name = os.path.basename(file_path)
             print("get 的文件路径为：", file_path)
             if os.path.exists(file_path):
                 if not os.path.isdir(file_path):
@@ -203,7 +203,7 @@ class FTPServer:
                     }
                     self.send_msg_dict(head_dict)
                 else:
-                    print("可以上传")
+                    print("空间足够可以上传")
                     head_dict = {
                         "msg_type": "info",
                         "msg_content": "配额足够，可以上传"
@@ -214,34 +214,32 @@ class FTPServer:
                     file_md5 = data_dict["file_md5"]
                     with open("%s/%s" % (self.user_data["current_dir"], file_name), "wb") as f:
                         receive_size = 0
-                        while True:
-                            if receive_size < file_size:
-                                data = self.conn.recv(settings.receive_bytes)
-                                f.write(data)
-                                receive_size += len(data)
-                            elif receive_size == file_size:
-                                if file_md5 == utils.md5(file_name):
-                                    print("文件校验正确")
-                                    print("接收完成")
-                                    self.user_data["current_quota"] += receive_size
-                                    utils.save_user_data(self.user_data)
-                                    head_dict = {
-                                        "msg_type": "info",
-                                        "msg_content": "文件校验正确，接收完成。"
-                                    }
-                                    self.send_msg_dict(head_dict)
-                                    break
-                                else:
-                                    print("文件md5不匹配")
-                                    head_dict = {
-                                        "msg_type": "error",
-                                        "msg_content": "文件md5不匹配"
-                                    }
-                                    self.send_msg_dict(head_dict)
+                        while receive_size < file_size:
+                            data = self.conn.recv(settings.receive_bytes)
+                            f.write(data)
+                            receive_size += len(data)
+                        else:
+                            print("文件接收完成")
+                            if file_md5 == utils.md5(file_name):
+                                print("文件校验正确")
+                                self.user_data["current_quota"] += receive_size
+                                utils.save_user_data(self.user_data)
+                                head_dict = {
+                                    "msg_type": "info",
+                                    "msg_content": "文件接收完成，文件校验正确。"
+                                }
+                                self.send_msg_dict(head_dict)
+                            else:
+                                print("文件md5不匹配")
+                                head_dict = {
+                                    "msg_type": "error",
+                                    "msg_content": "文件接收完成，但文件md5不匹配"
+                                }
+                                self.send_msg_dict(head_dict)
 
     def handle_cmd(self):
         while True:
-            print("开始接收命令。。")
+            print("等待接收命令...")
             cmd_bytes = self.conn.recv(settings.receive_bytes)
             cmd = cmd_bytes.decode("utf-8")
             cmd_list = cmd.split()

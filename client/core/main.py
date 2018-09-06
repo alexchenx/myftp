@@ -104,19 +104,18 @@ class FTPClient:
             file_md5 = data_dict["file_md5"]
             with open("%s/%s" % (settings.download_dir, file_name), "wb") as f:
                 receive_size = 0
-                while True:
-                    if receive_size < file_size:
-                        data = self.client.recv(settings.receive_bytes)
-                        f.write(data)
-                        receive_size += len(data)
-                        self.show_progress(receive_size, file_size)
-                    if receive_size == file_size:
-                        if file_md5 == self.md5(file_name):
-                            print("文件校验正确")
-                            print("接收完成")
-                            break
-                        else:
-                            print("文件md5不匹配")
+                while receive_size < file_size:
+                    data = self.client.recv(settings.receive_bytes)
+                    f.write(data)
+                    receive_size += len(data)
+                    self.show_progress(receive_size, file_size)
+                else:
+                    print("文件接收完成")
+                    if file_md5 == self.md5(file_name):
+                        print("文件校验正确")
+                    else:
+                        print("文件md5不匹配")
+
 
     def _put(self, cmds):
         if len(cmds) < 2:
@@ -124,15 +123,15 @@ class FTPClient:
         elif len(cmds) > 2:
             print("参数太多了，只支持1个参数。")
         else:
-            file_name = cmds[1]
-            path = os.path.join(settings.download_dir, file_name)
+            path = os.path.join(settings.download_dir, cmds[1])
             if os.path.exists(path):
                 if not os.path.isdir(path):
+                    file_name = os.path.basename(path)
                     file_size = os.path.getsize(path)
                     head_dict = {
                         "msg_type": "info",
                         "file_name": file_name,
-                        "file_size": os.path.getsize(path),
+                        "file_size": file_size,
                         "file_md5": self.md5(file_name)
                     }
                     self.send_msg_dict(head_dict)
