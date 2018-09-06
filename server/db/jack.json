@@ -1,8 +1,1 @@
-{
-  "username": "jack",
-  "password": "e10adc3949ba59abbe56e057f20f883e",
-  "home": "jack",
-  "quota": 1073741824,
-  "current_quota": 4389714,
-  "current_dir": ""
-}
+{"username": "jack", "password": "e10adc3949ba59abbe56e057f20f883e", "home": "D:\\PycharmProjects\\MyProjects\\myftp\\server\\FTP_DATA\\jack", "quota": 1073741824, "current_quota": 8483068, "current_dir": "D:\\PycharmProjects\\MyProjects\\myftp\\server\\FTP_DATA\\jack"}

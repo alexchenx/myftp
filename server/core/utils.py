@@ -27,8 +27,8 @@ def md5(content):
     md5_value = ha.hexdigest()
     return md5_value
 
-
-def show_progress(receive_size, file_size):
-    s = "\r进度：%s %d%% " % ("#" * int((receive_size / file_size) * 100), (receive_size / file_size) * 100)
-    sys.stdout.write(s)
-    sys.stdout.flush()
+#
+# def show_progress(receive_size, file_size):
+#     s = "\r进度：%s %d%% " % ("#" * int((receive_size / file_size) * 100), (receive_size / file_size) * 100)
+#     sys.stdout.write(s)
+#     sys.stdout.flush()

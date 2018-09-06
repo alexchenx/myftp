@@ -3,6 +3,7 @@ import json
 import os
 import struct
 import subprocess
+import platform
 from server.conf import settings
 from server.core import utils
 
@@ -11,6 +12,12 @@ class FTPServer:
     def __init__(self):
         self.user_data = None
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.platform = None
+
+        if platform.uname()[0] == "Windows":
+            self.platform = "Windows"
+        else:
+            self.platform = "Linux"
 
     def verify_search_command_parameter(self, cmd_list):
         if len(cmd_list) > 2:
@@ -36,138 +43,55 @@ class FTPServer:
         else:
             return True
 
-    def execute_command(self, cmd_list):
-        path = os.path.normpath("%s" % (self.user_data["current_dir"]))
-        if len(cmd_list) == 2:
-            if cmd_list[1] == "\\" or cmd_list[1] == "/":
-                path = os.path.normpath("%s" % (self.user_data["home"]))
-            else:
-                path = os.path.join(self.user_data["current_dir"], cmd_list[1])
-        cmd_all = "%s %s" % (cmd_list[0], path)
-        if cmd_list[0] == "ls":
-            cmd_all = "%s -all %s" % (cmd_list[0], path)
+    def execute_command(self, cmd_all):
         print("要执行的命令为：%s" % (cmd_all))
-
         obj = subprocess.Popen(cmd_all, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout = obj.stdout.read()
         stderr = obj.stderr.read()
-        if cmd_list[0] == "cd" and len(stderr) == 0:
-            self.user_data["current_dir"] = path
-            print("执行后 current_dir:", self.user_data["current_dir"])
 
-        total_size = len(stdout) + len(stderr)
         msg_dict = {
             "msg_type": "info",
-            "msg_size": total_size
+            "msg_size": len(stdout) + len(stderr)
         }
         self.send_msg_dict(msg_dict)
         self.conn.send(stdout)
         self.conn.send(stderr)
 
-    def common_search_command(self, cmd_list):
-        if self.verify_search_command_parameter(cmd_list):
-            self.execute_command(cmd_list)
-
     def _ls(self, cmd_list):
-        self.common_search_command(cmd_list)
-
-    def _dir(self, cmd_list):
-        self.common_search_command(cmd_list)
+        if self.verify_search_command_parameter(cmd_list):
+            path = os.path.normpath(self.user_data["current_dir"])
+            if len(cmd_list) == 2:
+                path = os.path.normpath("%s/%s" % (self.user_data["current_dir"], cmd_list[1]))
+            if self.platform == "Windows":
+                cmd_all = "dir %s" % (path)
+            if self.platform == "Linux":
+                cmd_all = "ls -all %s" % (path)
+            self.execute_command(cmd_all)
 
     def _cd(self, cmd_list):
-        self.common_search_command(cmd_list)
-
-    def _rm(self, cmd_list):
-        if self.verify_search_command_parameter(cmd_list) and self.verify_action_command_parameter(cmd_list):
-            path = os.path.normpath("%s/%s" % (self.user_data["current_dir"], cmd_list[1]))
-            if os.path.exists(path):
-                if not os.path.isdir(path):
-                    cmd_all = "%s -f %s" % (cmd_list[0], path)
-                    print("要执行的命令为：%s" % (cmd_all))
-                    path_size = os.path.getsize(path)
-                    print("path_size:", path_size)
-                    obj = subprocess.Popen(cmd_all, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    stdout = obj.stdout.read()
-                    stderr = obj.stderr.read()
-                    if path_size != 0:
-                        self.user_data["current_quota"] -= path_size
-                        utils.save_user_data(self.user_data)
-
-                    msg_dict = {
-                        "msg_type": "info",
-                        "msg_size": len(stdout) + len(stderr)
-                    }
-                    self.send_msg_dict(msg_dict)
-                    self.conn.send(stdout)
-                    self.conn.send(stderr)
+        if self.verify_search_command_parameter(cmd_list):
+            path = os.path.normpath(self.user_data["home"])
+            if len(cmd_list) == 2:
+                if cmd_list[1] == "/" or cmd_list[1] == "\\":
+                    path = os.path.normpath(self.user_data["home"])
                 else:
+                    path = os.path.normpath("%s/%s" % (self.user_data["current_dir"], cmd_list[1]))
+            print("cd path is:", path)
+
+            if os.path.isdir(path):
+                if self.user_data["home"] not in path:
                     msg_dict = {
                         "msg_type": "error",
-                        "msg_content": "不支持使用此命令删除目录"
+                        "msg_content": "已经到头了，不能切换了。"
                     }
                     self.send_msg_dict(msg_dict)
-            else:
-                msg_dict = {
-                    "msg_type": "error",
-                    "msg_content": "文件不存在"
-                }
-                self.send_msg_dict(msg_dict)
-
-    def _del(self, cmd_list):
-        if self.verify_search_command_parameter(cmd_list) and self.verify_action_command_parameter(cmd_list):
-            path = os.path.normpath("%s/%s" % (self.user_data["current_dir"], cmd_list[1]))
-            if os.path.exists(path):
-                if not os.path.isdir(path):
-                    cmd_all = "%s /Q %s" % (cmd_list[0], path)
-                    print("要执行的命令为：%s" % (cmd_all))
-                    path_size = os.path.getsize(path)
-                    print("path_size:", path_size)
-                    obj = subprocess.Popen(cmd_all, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    stdout = obj.stdout.read()
-                    stderr = obj.stderr.read()
-                    if path_size != 0:
-                        self.user_data["current_quota"] -= path_size
-                        utils.save_user_data(self.user_data)
-                    msg_dict = {
-                        "msg_type": "info",
-                        "msg_size": len(stdout) + len(stderr)
-                    }
-                    self.send_msg_dict(msg_dict)
-                    self.conn.send(stdout)
-                    self.conn.send(stderr)
                 else:
+                    self.user_data["current_dir"] = path
                     msg_dict = {
-                        "msg_type": "error",
-                        "msg_content": "不支持使用此命令删除目录"
+                        "msg_type": "info_cd",
+                        "msg_content": "切换成功"
                     }
                     self.send_msg_dict(msg_dict)
-            else:
-                msg_dict = {
-                    "msg_type": "error",
-                    "msg_content": "文件不存在"
-                }
-                self.send_msg_dict(msg_dict)
-
-    def _rmdir(self, cmd_list):
-        if self.verify_search_command_parameter(cmd_list) and self.verify_action_command_parameter(cmd_list):
-            path = os.path.normpath("%s/%s" % (self.user_data["current_dir"], cmd_list[1]))
-            if os.path.exists(path):
-                cmd_all = "%s %s" % (cmd_list[0], path)
-                print("要执行的命令为：%s" % (cmd_all))
-                path_size = os.path.getsize(path)
-                obj = subprocess.Popen(cmd_all, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                stdout = obj.stdout.read()
-                stderr = obj.stderr.read()
-                msg_dict = {
-                    "msg_type": "info",
-                    "msg_size": len(stdout) + len(stderr)
-                }
-                self.send_msg_dict(msg_dict)
-                self.conn.send(stdout)
-                self.conn.send(stderr)
-                if path_size != 0:
-                    self.user_data["current_quota"] -= path_size
-                    utils.save_user_data(self.user_data)
             else:
                 msg_dict = {
                     "msg_type": "error",
@@ -178,18 +102,55 @@ class FTPServer:
     def _mkdir(self, cmd_list):
         if self.verify_search_command_parameter(cmd_list) and self.verify_action_command_parameter(cmd_list):
             path = os.path.normpath("%s/%s" % (self.user_data["current_dir"], cmd_list[1]))
-            cmd_all = "%s %s" % (cmd_list[0], path)
-            print("要执行的命令为：%s" % (cmd_all))
-            obj = subprocess.Popen(cmd_all, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            stdout = obj.stdout.read()
-            stderr = obj.stderr.read()
-            msg_dict = {
-                "msg_type": "info",
-                "msg_size": len(stdout) + len(stderr)
-            }
-            self.send_msg_dict(msg_dict)
-            self.conn.send(stdout)
-            self.conn.send(stderr)
+            if self.platform == "Windows":
+                cmd_all = "mkdir %s" % (path)
+            if self.platform == "Linux":
+                cmd_all = "mkdir -p %s" % (path)
+            self.execute_command(cmd_all)
+
+    def _rmdir(self, cmd_list):
+        if self.verify_search_command_parameter(cmd_list) and self.verify_action_command_parameter(cmd_list):
+            path = os.path.normpath("%s/%s" % (self.user_data["current_dir"], cmd_list[1]))
+            if os.path.isdir(path):
+                cmd_all = "rmdir %s" % (path)
+                self.execute_command(cmd_all)
+            else:
+                msg_dict = {
+                    "msg_type": "error",
+                    "msg_content": "目录不存在"
+                }
+                self.send_msg_dict(msg_dict)
+
+    def _rm(self, cmd_list):
+        if self.verify_search_command_parameter(cmd_list) and self.verify_action_command_parameter(cmd_list):
+            path = os.path.normpath("%s/%s" % (self.user_data["current_dir"], cmd_list[1]))
+            if os.path.exists(path):
+                if not os.path.isdir(path):
+                    if self.platform == "Windows":
+                        cmd_all = "del /Q %s" % (path)
+                    if self.platform == "Linux":
+                        cmd_all = "rm -f %s" % (path)
+                    path_size = os.path.getsize(path)
+                    self.execute_command(cmd_all)
+                    if path_size != 0:
+                        self.user_data["current_quota"] -= path_size
+                        utils.save_user_data(self.user_data)
+                else:
+                    msg_dict = {
+                        "msg_type": "error",
+                        "msg_content": "不支持使用此命令删除目录"
+                    }
+                    self.send_msg_dict(msg_dict)
+            else:
+                msg_dict = {
+                    "msg_type": "error",
+                    "msg_content": "文件不存在"
+                }
+                self.send_msg_dict(msg_dict)
+
+    def _exit(self, cmds):
+        print("客户端 %s 断开" % self.client_address)
+        self.conn.close()
 
     def _get(self, cmd_list):
         if self.verify_search_command_parameter(cmd_list) and self.verify_action_command_parameter(cmd_list):
@@ -258,7 +219,6 @@ class FTPServer:
                                 data = self.conn.recv(settings.receive_bytes)
                                 f.write(data)
                                 receive_size += len(data)
-                                utils.show_progress(receive_size, file_size)
                             elif receive_size == file_size:
                                 if file_md5 == utils.md5(file_name):
                                     print("文件校验正确")
@@ -310,10 +270,9 @@ class FTPServer:
             pwd = utils.md5(password)
             if pwd == user_data["password"]:
                 self.user_data = user_data
-                self.user_data["current_dir"] = os.path.join(settings.ftp_home_dir, user_data["username"])
-                self.user_data["home"] = os.path.join(settings.ftp_home_dir, user_data["username"])
-
-                # 当用户home目录不存在时自动建立
+                self.user_data["current_dir"] = os.path.normpath(
+                    os.path.join(settings.ftp_home_dir, user_data["username"]))
+                self.user_data["home"] = os.path.normpath(os.path.join(settings.ftp_home_dir, user_data["username"]))
                 if not os.path.exists(self.user_data["home"]):
                     os.mkdir(self.user_data["home"])
 

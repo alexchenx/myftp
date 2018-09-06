@@ -13,9 +13,11 @@ class FTPClient:
     def __init__(self):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    def common_command(self, cmds):
+    def receive_command_result(self, cmds):
         data_dict = self.receive_msg_dict()
         if data_dict["msg_type"] == "error":
+            print(data_dict["msg_content"])
+        elif data_dict["msg_type"] == "info_cd":
             print(data_dict["msg_content"])
         else:
             content_size = data_dict["msg_size"]
@@ -26,30 +28,71 @@ class FTPClient:
                 receive_data += data
                 receive_size += len(data)
             if platform.uname()[0] == "Windows":
-                print(receive_data.decode("GBK").encode("UTF-8").decode("UTF-8"))
+                print(receive_data.decode("GBK"))
             else:
                 print(receive_data.decode("UTF-8"))
 
-    def _ls(self, cmds):
-        self.common_command(cmds)
+    def _exit(self, cmds):
+        exit("Bye Bye!")
 
-    def _dir(self, cmds):
-        self.common_command(cmds)
+    def _help(self, cmds):
+        cmd_help_dict = {
+
+            "get": {
+                "description": "Download file from server to local",
+                "usage": ""
+            },
+            "put": {
+                "description": "Upload local file to server",
+                "usage": ""
+            },
+            "cd": {
+                "description": "Change directory",
+                "usage": ""
+            },
+            "ls": {
+                "description": "Show directories and files",
+                "usage": ""
+            },
+            "mkdir": {
+                "description": "Create directory",
+                "usage": ""
+            },
+            "rmdir": {
+                "description": "Delete empty directory",
+                "usage": ""
+            },
+            "rm": {
+                "description": "Delete file",
+                "usage": ""
+            },
+            "help": {
+                "description": "Get help information",
+                "usage": ""
+            },
+            "exit": {
+                "description": "Exit system",
+                "usage": ""
+            },
+        }
+        print("支持命令".center(50, "-"))
+        for cmd in cmd_help_dict:
+            print("%-5s    %-20s" % (cmd, cmd_help_dict[cmd]["description"]))
+
+    def _ls(self, cmds):
+        self.receive_command_result(cmds)
 
     def _cd(self, cmds):
-        self.common_command(cmds)
+        self.receive_command_result(cmds)
 
     def _rm(self, cmds):
-        self.common_command(cmds)
+        self.receive_command_result(cmds)
 
     def _rmdir(self, cmds):
-        self.common_command(cmds)
-
-    def _del(self, cmds):
-        self.common_command(cmds)
+        self.receive_command_result(cmds)
 
     def _mkdir(self, cmds):
-        self.common_command(cmds)
+        self.receive_command_result(cmds)
 
     def _get(self, cmds):
         data_dict = self.receive_msg_dict()
@@ -128,7 +171,7 @@ class FTPClient:
         return md5_value
 
     def show_progress(self, receive_size, file_size):
-        s = "\r进度：%s %d%% " % ("#" * int((receive_size / file_size) * 100), (receive_size / file_size) * 100)
+        s = "\r进度：%s %d%% " % ("#" * int((receive_size / file_size) * 50), (receive_size / file_size) * 100)
         sys.stdout.write(s)
         sys.stdout.flush()
 
@@ -148,6 +191,7 @@ class FTPClient:
         while True:
             cmd_input = input("command>>>: ").strip()
             if not cmd_input: continue
+
             cmd_list = cmd_input.split()
             if hasattr(self, "_%s" % (cmd_list[0])):
                 self.client.send(cmd_input.encode("utf-8"))
