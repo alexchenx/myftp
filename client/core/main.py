@@ -108,13 +108,9 @@ class FTPClient:
             print("未传输完成的文件".center(50, "-"))
             for index, file_key in enumerate(shelve_obj):
                 if shelve_obj[file_key]["action_type"] == "get":
-                    unfinished_file_path = os.path.normpath(
-                        "%s/%s" % (settings.download_dir, shelve_obj[file_key]["file_name"]))
+                    unfinished_file_path = os.path.normpath("%s/%s" % (settings.download_dir, shelve_obj[file_key]["file_name"]))
                     transferred_size = os.path.getsize(unfinished_file_path)
-                    transfer_list.append([file_key,  # 文件路径
-                                          transferred_size,  # 已传输大小
-                                          shelve_obj[file_key]["file_size"],  # 文件总大小
-                                          shelve_obj[file_key]["action_type"]])  # 传输类型
+                    transfer_list.append([file_key, transferred_size, shelve_obj[file_key]["file_size"], shelve_obj[file_key]["action_type"]])
                 if shelve_obj[file_key]["action_type"] == "put":
                     sent_size_dict = {
                         "command_type": "re_transfer",
@@ -126,10 +122,7 @@ class FTPClient:
                     if data["msg_type"] == "error":
                         print(data["msg_content"])
                     else:
-                        transfer_list.append([file_key,  # 文件路径
-                                              data["transferred_size"],  # 已传输大小
-                                              shelve_obj[file_key]["file_size"],  # 文件总大小
-                                              shelve_obj[file_key]["action_type"]])  # 传输类型
+                        transfer_list.append([file_key,  data["transferred_size"], shelve_obj[file_key]["file_size"], shelve_obj[file_key]["action_type"]])  # 传输类型
 
             for idx, file in enumerate(transfer_list):
                 print("序号：%s   文件服务端路径：%s  已传输大小：%s  总共大小：%s    已传输进度：%s    类型：%s"
@@ -224,8 +217,7 @@ class FTPClient:
                     else:
                         shelve_obj = shelve.open("db")
                         sent_size = command_dict["transferred_size"]
-                        absolute_file_path = os.path.normpath(
-                            "%s/%s" % (self.current_dir, file_name)).replace("\\", "/").replace("//", "/")
+                        absolute_file_path = os.path.normpath("%s/%s" % (self.current_dir, file_name)).replace("\\", "/").replace("//", "/")
                         if sent_size == 0:
                             shelve_obj[absolute_file_path] = {"action_type": "put",
                                                               "transferred_size": sent_size,

@@ -59,8 +59,7 @@ class FTPServer:
         if self.verify_search_command_parameter(cmd_list):
             path = os.path.normpath("%s/%s" % (self.user_data["home"], self.user_data["current_dir"]))
             if len(cmd_list) == 2:
-                path = os.path.normpath(
-                    "%s/%s/%s" % (self.user_data["home"], self.user_data["current_dir"], cmd_list[1]))
+                path = os.path.normpath("%s/%s/%s" % (self.user_data["home"], self.user_data["current_dir"], cmd_list[1]))
             if self.platform == "Windows":
                 cmd_all = "dir %s" % (path)
             if self.platform == "Linux":
@@ -74,8 +73,7 @@ class FTPServer:
                 if cmd_list[1] == "/" or cmd_list[1] == "\\":
                     path = os.path.normpath(self.user_data["home"])
                 else:
-                    path = os.path.normpath(
-                        "%s/%s/%s" % (self.user_data["home"], self.user_data["current_dir"], cmd_list[1]))
+                    path = os.path.normpath("%s/%s/%s" % (self.user_data["home"], self.user_data["current_dir"], cmd_list[1]))
             if os.path.isdir(path):
                 if self.user_data["home"] not in path:
                     msg_dict = {
@@ -154,8 +152,7 @@ class FTPServer:
 
     def _get(self, cmd_list, received_size=0):
         if self.verify_search_command_parameter(cmd_list) and self.verify_action_command_parameter(cmd_list):
-            file_path = os.path.normpath(
-                "%s/%s/%s" % (self.user_data["home"], self.user_data["current_dir"], cmd_list[1]))
+            file_path = os.path.normpath("%s/%s/%s" % (self.user_data["home"], self.user_data["current_dir"], cmd_list[1]))
             if received_size != 0:
                 file_path = os.path.normpath("%s/%s" % (self.user_data["home"], cmd_list[1]))
             file_name = os.path.basename(file_path)
