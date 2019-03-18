@@ -11,7 +11,6 @@ from concurrent.futures import ThreadPoolExecutor
 
 class FTPServer:
     def __init__(self):
-        self.user_data = None
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.platform = None
         if platform.uname()[0] == "Windows":
@@ -74,7 +73,7 @@ class FTPServer:
         conn.send(stdout)
         conn.send(stderr)
 
-    def _ls(self, cmd_list, conn):
+    def _ls(self, cmd_list, conn, user_data):
         '''
         ls命令业务处理
         :param cmd_list:
@@ -82,17 +81,16 @@ class FTPServer:
         :return:
         '''
         if self.verify_search_command_parameter(cmd_list, conn):
-            path = os.path.normpath("%s/%s" % (self.user_data["home"], self.user_data["current_dir"]))
+            path = os.path.normpath("%s/%s" % (user_data["home"], user_data["current_dir"]))
             if len(cmd_list) == 2:
-                path = os.path.normpath(
-                    "%s/%s/%s" % (self.user_data["home"], self.user_data["current_dir"], cmd_list[1]))
+                path = os.path.normpath("%s/%s/%s" % (user_data["home"], user_data["current_dir"], cmd_list[1]))
             if self.platform == "Windows":
                 cmd_all = "dir %s" % (path)
             if self.platform == "Linux":
                 cmd_all = "ls -all %s" % (path)
             self.execute_command(cmd_all, conn)
 
-    def _cd(self, cmd_list, conn):
+    def _cd(self, cmd_list, conn, user_data):
         '''
         cd命令业务处理
         :param cmd_list:
@@ -100,27 +98,26 @@ class FTPServer:
         :return:
         '''
         if self.verify_search_command_parameter(cmd_list, conn):
-            path = os.path.normpath(self.user_data["home"])
+            path = os.path.normpath(user_data["home"])
             if len(cmd_list) == 2:
                 if cmd_list[1] == "/" or cmd_list[1] == "\\":
-                    path = os.path.normpath(self.user_data["home"])
+                    path = os.path.normpath(user_data["home"])
                 else:
-                    path = os.path.normpath(
-                        "%s/%s/%s" % (self.user_data["home"], self.user_data["current_dir"], cmd_list[1]))
+                    path = os.path.normpath("%s/%s/%s" % (user_data["home"], user_data["current_dir"], cmd_list[1]))
             if os.path.isdir(path):
-                if self.user_data["home"] not in path:
+                if user_data["home"] not in path:
                     msg_dict = {
                         "msg_type": "info_cd",
                         "msg_content": "已在根目录，不能切换了。",
-                        "current_dir": self.user_data["current_dir"]
+                        "current_dir": user_data["current_dir"]
                     }
                     self.send_msg_dict(msg_dict, conn)
                 else:
-                    self.user_data["current_dir"] = path.split(self.user_data["home"])[1]
+                    user_data["current_dir"] = path.split(user_data["home"])[1]
                     msg_dict = {
                         "msg_type": "info_cd",
                         "msg_content": "",
-                        "current_dir": self.user_data["current_dir"]
+                        "current_dir": user_data["current_dir"]
                     }
                     self.send_msg_dict(msg_dict, conn)
             else:
@@ -130,32 +127,30 @@ class FTPServer:
                 }
                 self.send_msg_dict(msg_dict, conn)
 
-    def _mkdir(self, cmd_list, conn):
+    def _mkdir(self, cmd_list, conn, user_data):
         '''
         mkdir命令业务处理
         :param cmd_list:
         :param conn:
         :return:
         '''
-        if self.verify_search_command_parameter(cmd_list, conn) and self.verify_action_command_parameter(cmd_list,
-                                                                                                         conn):
-            path = os.path.normpath("%s/%s/%s" % (self.user_data["home"], self.user_data["current_dir"], cmd_list[1]))
+        if self.verify_search_command_parameter(cmd_list, conn) and self.verify_action_command_parameter(cmd_list, conn):
+            path = os.path.normpath("%s/%s/%s" % (user_data["home"], user_data["current_dir"], cmd_list[1]))
             if self.platform == "Windows":
                 cmd_all = "mkdir %s" % (path)
             if self.platform == "Linux":
                 cmd_all = "mkdir -p %s" % (path)
             self.execute_command(cmd_all, conn)
 
-    def _rmdir(self, cmd_list, conn):
+    def _rmdir(self, cmd_list, conn, user_data):
         '''
         rmdir命令业务处理
         :param cmd_list:
         :param conn:
         :return:
         '''
-        if self.verify_search_command_parameter(cmd_list, conn) and self.verify_action_command_parameter(cmd_list,
-                                                                                                         conn):
-            path = os.path.normpath("%s/%s/%s" % (self.user_data["home"], self.user_data["current_dir"], cmd_list[1]))
+        if self.verify_search_command_parameter(cmd_list, conn) and self.verify_action_command_parameter(cmd_list, conn):
+            path = os.path.normpath("%s/%s/%s" % (user_data["home"], user_data["current_dir"], cmd_list[1]))
             if os.path.isdir(path):
                 cmd_all = "rmdir %s" % (path)
                 self.execute_command(cmd_all, conn)
@@ -166,16 +161,15 @@ class FTPServer:
                 }
                 self.send_msg_dict(msg_dict, conn)
 
-    def _rm(self, cmd_list, conn):
+    def _rm(self, cmd_list, conn, user_data):
         '''
         rm命令业务处理
         :param cmd_list:
         :param conn:
         :return:
         '''
-        if self.verify_search_command_parameter(cmd_list, conn) and self.verify_action_command_parameter(cmd_list,
-                                                                                                         conn):
-            path = os.path.normpath("%s/%s/%s" % (self.user_data["home"], self.user_data["current_dir"], cmd_list[1]))
+        if self.verify_search_command_parameter(cmd_list, conn) and self.verify_action_command_parameter(cmd_list, conn):
+            path = os.path.normpath("%s/%s/%s" % (user_data["home"], user_data["current_dir"], cmd_list[1]))
             if os.path.exists(path):
                 if not os.path.isdir(path):
                     if self.platform == "Windows":
@@ -185,8 +179,8 @@ class FTPServer:
                     path_size = os.path.getsize(path)
                     self.execute_command(cmd_all, conn)
                     if path_size != 0:
-                        self.user_data["current_quota"] -= path_size
-                        utils.save_user_data(self.user_data)
+                        user_data["current_quota"] -= path_size
+                        utils.save_user_data(user_data)
                 else:
                     msg_dict = {
                         "msg_type": "error",
@@ -210,7 +204,7 @@ class FTPServer:
         print("客户端请求断开")
         conn.close()
 
-    def _get(self, cmd_list, conn, received_size=0):
+    def _get(self, cmd_list, conn, user_data, received_size=0):
         '''
         get命令业务处理
         :param cmd_list:
@@ -218,14 +212,12 @@ class FTPServer:
         :param received_size:
         :return:
         '''
-        if self.verify_search_command_parameter(cmd_list, conn) and self.verify_action_command_parameter(cmd_list,
-                                                                                                         conn):
-            file_path = os.path.normpath(
-                "%s/%s/%s" % (self.user_data["home"], self.user_data["current_dir"], cmd_list[1]))
+        if self.verify_search_command_parameter(cmd_list, conn) and self.verify_action_command_parameter(cmd_list, conn):
+            file_path = os.path.normpath("%s/%s/%s" % (user_data["home"], user_data["current_dir"], cmd_list[1]))
             if received_size != 0:
-                file_path = os.path.normpath("%s/%s" % (self.user_data["home"], cmd_list[1]))
+                file_path = os.path.normpath("%s/%s" % (user_data["home"], cmd_list[1]))
             file_name = os.path.basename(file_path)
-            absolute_file_path = os.path.normpath("/%s/%s" % (self.user_data["current_dir"], cmd_list[1]))
+            absolute_file_path = os.path.normpath("/%s/%s" % (user_data["current_dir"], cmd_list[1]))
             if os.path.exists(file_path):
                 if not os.path.isdir(file_path):
                     print("检测文件是存在的，开始发送")
@@ -264,7 +256,7 @@ class FTPServer:
                 }
                 self.send_msg_dict(head_dict, conn)
 
-    def _put(self, cmd_list, conn, transferred_size=0):
+    def _put(self, cmd_list, conn, user_data, transferred_size=0):
         '''
         put 命令业务处理
         :param cmd_list:
@@ -272,14 +264,13 @@ class FTPServer:
         :param transferred_size:
         :return:
         '''
-        if self.verify_search_command_parameter(cmd_list, conn) and self.verify_action_command_parameter(cmd_list,
-                                                                                                         conn):
+        if self.verify_search_command_parameter(cmd_list, conn) and self.verify_action_command_parameter(cmd_list, conn):
             data_dict = self.receive_msg_dict(conn)
             if data_dict["msg_type"] == "error":
                 print(data_dict["msg_content"])
             else:
                 file_size = data_dict["file_size"]
-                if (file_size + self.user_data["current_quota"]) > self.user_data["quota"]:
+                if (file_size + user_data["current_quota"]) > user_data["quota"]:
                     print("文件太大了，超过磁盘配额，不能上传")
                     head_dict = {
                         "msg_type": "error",
@@ -297,11 +288,10 @@ class FTPServer:
                     file_md5 = data_dict["file_md5"]
                     if transferred_size != 0:
                         mode = "ab"
-                        path = os.path.normpath("%s/%s" % (self.user_data["home"], cmd_list[1]))
+                        path = os.path.normpath("%s/%s" % (user_data["home"], cmd_list[1]))
                     else:
                         mode = "wb"
-                        path = os.path.normpath(
-                            "%s/%s/%s" % (self.user_data["home"], self.user_data["current_dir"], file_name))
+                        path = os.path.normpath("%s/%s/%s" % (user_data["home"], user_data["current_dir"], file_name))
 
                     with open(path, mode) as f:
                         if transferred_size != 0:
@@ -316,8 +306,8 @@ class FTPServer:
                             print("文件接收完成")
                             if file_md5 == utils.md5(file_name):
                                 print("文件校验正确")
-                                self.user_data["current_quota"] += transferred_size
-                                utils.save_user_data(self.user_data)
+                                user_data["current_quota"] += transferred_size
+                                utils.save_user_data(user_data)
                                 head_dict = {
                                     "msg_type": "info",
                                     "msg_content": "文件接收完成，文件校验正确。"
@@ -331,14 +321,14 @@ class FTPServer:
                                 }
                                 self.send_msg_dict(head_dict, conn)
 
-    def _get_size(self, absolute_file_path, conn):
+    def _get_size(self, absolute_file_path, conn, user_data):
         '''
         根据路径获取文件大小
         :param absolute_file_path:
         :param conn:
         :return:
         '''
-        path = os.path.normpath("%s/%s" % (self.user_data["home"], absolute_file_path))
+        path = os.path.normpath("%s/%s" % (user_data["home"], absolute_file_path))
         if os.path.exists(path):
             head_dict = {
                 "msg_type": "info",
@@ -352,7 +342,7 @@ class FTPServer:
             }
             self.send_msg_dict(head_dict, conn)
 
-    def handle_cmd(self, conn):
+    def handle_cmd(self, conn, user_data):
         '''
         接收客户端发送的命令进行解析操作
         :param conn:
@@ -369,7 +359,7 @@ class FTPServer:
                     print("接收到的命令列表cmd_list:", cmd_list)
                     if hasattr(self, "_%s" % (cmd_list[0])):
                         func = getattr(self, "_%s" % (cmd_list[0]))
-                        func(cmd_list, conn)
+                        func(cmd_list, conn, user_data)
                     else:
                         print("没有 %s 这个命令" % cmd_list[0])
                         continue
@@ -378,9 +368,9 @@ class FTPServer:
                     cmd_list = [cmd_dict["command_action"], cmd_dict["absolute_file_path"]]
                     func = getattr(self, "_%s" % (cmd_dict["command_action"]))
                     if cmd_dict["command_action"] == "get_size":
-                        func(cmd_dict["absolute_file_path"], conn)
+                        func(cmd_dict["absolute_file_path"], conn, user_data)
                     else:
-                        func(cmd_list, conn, cmd_dict["transferred_size"])
+                        func(cmd_list, conn, user_data, cmd_dict["transferred_size"])
         except ConnectionError:
             print("远程主机断开")
             conn.close()
@@ -411,14 +401,13 @@ class FTPServer:
             user_data = utils.get_user_data(username)
             pwd = utils.md5(password)
             if pwd == user_data["password"]:
-                self.user_data = user_data
-                self.user_data["current_dir"] = "/"
-                self.user_data["home"] = os.path.normpath(os.path.join(settings.ftp_home_dir, user_data["username"]))
-                if not os.path.exists(self.user_data["home"]):
-                    os.mkdir(self.user_data["home"])
-                return True  # 登录成功
+                user_data["current_dir"] = "/"
+                user_data["home"] = os.path.normpath(os.path.join(settings.ftp_home_dir, user_data["username"]))
+                if not os.path.exists(user_data["home"]):
+                    os.mkdir(user_data["home"])
+                return user_data  # 登录成功
             else:
-                return False  # 用户名或密码错误max_queue_size
+                return False  # 用户名或密码错误
         else:
             return False  # 用户名不存在
 
@@ -455,15 +444,15 @@ class FTPServer:
         print("进入login")
         while True:
             msg_res_dict = self.receive_msg_dict(conn)
-            login_res = self.auth_user(msg_res_dict)
-            if login_res:
+            user_data = self.auth_user(msg_res_dict)
+            if user_data != False:
                 login_res_msg = {
                     "msg_type": "auth",
                     "msg_content": "successful",
                     "login_res": True
                 }
                 self.send_msg_dict(login_res_msg, conn)
-                self.handle_cmd(conn)
+                self.handle_cmd(conn, user_data)
             else:
                 login_res_msg = {
                     "msg_type": "auth",
