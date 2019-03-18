@@ -418,7 +418,7 @@ class FTPServer:
                     os.mkdir(self.user_data["home"])
                 return True  # 登录成功
             else:
-                return False  # 用户名或密码错误
+                return False  # 用户名或密码错误max_queue_size
         else:
             return False  # 用户名不存在
 

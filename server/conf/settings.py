@@ -1,6 +1,7 @@
 host = "0.0.0.0"
 port = 9800
 receive_bytes = 1024
+max_queue_size = 5
 
 import os
 
