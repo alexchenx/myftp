@@ -1,7 +1,7 @@
 # MyFTP服务使用指南
 本服务可支持在Windows和Linux平台运行，启动前请进行必要的IP和端口配置。  
 服务端数据默认保存在：myftp/server/FTP_DATA  
-客户端数据默认保存在：myftp/client/download  
+客户端数据默认保存在：myftp/client/{username}  
 
 ## 配置说明
 服务端配置文件：myftp/server/conf/settings.py  

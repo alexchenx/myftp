@@ -1,10 +1,8 @@
-host = "127.0.0.1"
-port = 9800
-receive_bytes = 8192
+server_host = "127.0.0.1"
+server_port = 9800
+receive_bytes = 1024
 
 import os
 
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-download_dir = os.path.join(BASE_PATH, "download")
-if not os.path.exists(download_dir):
-    os.mkdir(download_dir)
+download_dir = BASE_PATH

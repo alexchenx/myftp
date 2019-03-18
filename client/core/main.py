@@ -16,6 +16,10 @@ class FTPClient:
         self.current_dir = "/"
 
     def receive_command_result(self):
+        '''
+        接收命令执行结果
+        :return:
+        '''
         data_dict = self.receive_msg_dict()
         if data_dict["msg_type"] == "error":
             print(data_dict["msg_content"])
@@ -39,9 +43,19 @@ class FTPClient:
                 print(receive_data.decode("UTF-8"))
 
     def _exit(self, command_dict):
+        '''
+        exit 命令业务处理
+        :param command_dict:
+        :return:
+        '''
         exit("Bye Bye!")
 
     def _help(self, command_dict):
+        '''
+        help 命令业务处理
+        :param command_dict:
+        :return:
+        '''
         cmd_help_dict = {
             "get filename": {
                 "description": "Download file from server to local",
@@ -85,32 +99,61 @@ class FTPClient:
             print("%-15s %-30s" % (cmd, cmd_help_dict[cmd]["description"]))
 
     def _ls(self, command_dict):
+        '''
+        ls 命令业务处理
+        :param command_dict:
+        :return:
+        '''
         self.receive_command_result()
 
     def _cd(self, command_dict):
+        '''
+        cd 命令业务处理
+        :param command_dict:
+        :return:
+        '''
         self.receive_command_result()
 
     def _rm(self, command_dict):
+        ''''
+        rm 命令业务处理
+        '''
         self.receive_command_result()
 
     def _rmdir(self, command_dict):
+        '''
+        rmdir 命令业务处理
+        :param command_dict:
+        :return:
+        '''
         self.receive_command_result()
 
     def _mkdir(self, command_dict):
+        '''
+        mkdir 命令业务处理
+        :param command_dict:
+        :return:
+        '''
         self.receive_command_result()
 
     def check_transfer(self):
+        '''
+        检查是否有未传输完成的任务
+        :return:
+        '''
         while True:
-            shelve_obj = shelve.open("db")
+            shelve_obj = shelve.open("%s/%s/db" % (settings.BASE_PATH, self.username))
             if len(shelve_obj.keys()) == 0:
                 break
             transfer_list = []
             print("未传输完成的文件".center(50, "-"))
             for index, file_key in enumerate(shelve_obj):
                 if shelve_obj[file_key]["action_type"] == "get":
-                    unfinished_file_path = os.path.normpath("%s/%s" % (settings.download_dir, shelve_obj[file_key]["file_name"]))
+                    unfinished_file_path = os.path.normpath(
+                        "%s/%s" % (settings.download_dir, shelve_obj[file_key]["file_name"]))
                     transferred_size = os.path.getsize(unfinished_file_path)
-                    transfer_list.append([file_key, transferred_size, shelve_obj[file_key]["file_size"], shelve_obj[file_key]["action_type"]])
+                    transfer_list.append([file_key, transferred_size, shelve_obj[file_key]["file_size"],
+                                          shelve_obj[file_key]["action_type"]])
                 if shelve_obj[file_key]["action_type"] == "put":
                     sent_size_dict = {
                         "command_type": "re_transfer",
@@ -122,7 +165,8 @@ class FTPClient:
                     if data["msg_type"] == "error":
                         print(data["msg_content"])
                     else:
-                        transfer_list.append([file_key,  data["transferred_size"], shelve_obj[file_key]["file_size"], shelve_obj[file_key]["action_type"]])  # 传输类型
+                        transfer_list.append([file_key, data["transferred_size"], shelve_obj[file_key]["file_size"],
+                                              shelve_obj[file_key]["action_type"]])  # 传输类型
 
             for idx, file in enumerate(transfer_list):
                 print("序号：%s   文件服务端路径：%s  已传输大小：%s  总共大小：%s    已传输进度：%s    类型：%s"
@@ -158,6 +202,11 @@ class FTPClient:
             shelve_obj.close()
 
     def _get(self, command_dict):
+        '''
+        get 命令业务处理
+        :param command_dict:
+        :return:
+        '''
         data_dict = self.receive_msg_dict()
         if data_dict["msg_type"] == "error":
             print(data_dict["msg_content"])
@@ -167,7 +216,7 @@ class FTPClient:
             file_md5 = data_dict["file_md5"]
             absolute_file_path = os.path.normpath(data_dict["absolute_file_path"]).replace("\\", "/").replace("//", "/")
             local_path = os.path.normpath("%s/%s" % (settings.download_dir, file_name))
-            shelve_obj = shelve.open("db")
+            shelve_obj = shelve.open("%s/%s/db" % (settings.BASE_PATH, self.username))
             if data_dict["transfer_flag"] == "continuingly":
                 file_mode = "ab"
             else:
@@ -192,6 +241,11 @@ class FTPClient:
                         print("文件md5不匹配")
 
     def _put(self, command_dict):
+        '''
+        put 命令业务处理
+        :param command_dict:
+        :return:
+        '''
         cmd_list = command_dict["full_command"].split()
         if len(cmd_list) < 2:
             print("缺少参数")
@@ -215,9 +269,11 @@ class FTPClient:
                     if verify_quota_res["msg_type"] == "error":
                         print(verify_quota_res["msg_content"])
                     else:
-                        shelve_obj = shelve.open("db")
+                        shelve_obj = shelve.open("%s/%s/db" % (settings.BASE_PATH, self.username))
                         sent_size = command_dict["transferred_size"]
-                        absolute_file_path = os.path.normpath("%s/%s" % (self.current_dir, file_name)).replace("\\", "/").replace("//", "/")
+                        absolute_file_path = os.path.normpath("%s/%s" % (self.current_dir, file_name)).replace("\\",
+                                                                                                               "/").replace(
+                            "//", "/")
                         if sent_size == 0:
                             shelve_obj[absolute_file_path] = {"action_type": "put",
                                                               "transferred_size": sent_size,
@@ -254,22 +310,42 @@ class FTPClient:
                 self.send_msg_dict(head_dict)
 
     def md5(self, content):
+        '''
+        将传入内容进行md5加密
+        :param content:
+        :return:
+        '''
         ha = hashlib.md5()
         ha.update(bytes(content, encoding="utf-8"))
         md5_value = ha.hexdigest()
         return md5_value
 
     def show_progress(self, receive_size, file_size):
+        '''
+        展示文件传输进度
+        :param receive_size:
+        :param file_size:
+        :return:
+        '''
         s = "\r进度：%s %d%% " % ("#" * int((receive_size / file_size) * 50), (receive_size / file_size) * 100)
         sys.stdout.write(s)
         sys.stdout.flush()
 
     def send_msg_dict(self, msg_dict):
+        '''
+        发送字典消息
+        :param msg_dict:
+        :return:
+        '''
         head_bytes = json.dumps(msg_dict).encode("utf-8")
         self.client.send(struct.pack("i", len(head_bytes)))
         self.client.send(head_bytes)
 
     def receive_msg_dict(self):
+        '''
+        接收字典消息
+        :return:
+        '''
         obj = self.client.recv(4)
         if not obj:
             return False
@@ -280,11 +356,14 @@ class FTPClient:
             return msg_dict
 
     def command_interactive(self):
+        '''
+        用户命令交互处理
+        :return:
+        '''
         while True:
             cmd_input = input("[%s]>>>: " % (self.current_dir)).strip()
             if not cmd_input:
                 continue
-
             cmd_list = cmd_input.split()
             if hasattr(self, "_%s" % (cmd_list[0])):
                 command_dict = {
@@ -300,8 +379,13 @@ class FTPClient:
                 print("没有 %s 这个命令" % cmd_list[0])
 
     def login(self):
+        '''
+        登录处理
+        :return:
+        '''
         while True:
             username = input("username: ").strip()
+            self.username = username
             password = input("password: ").strip()
             if not username or not password:
                 print("用户名或密码不能为空")
@@ -311,15 +395,23 @@ class FTPClient:
             login_res_dict = self.receive_msg_dict()
             if login_res_dict["login_res"]:
                 print("登录成功")
+                my_download_path = os.path.normpath(os.path.join(settings.BASE_PATH, "%s/download" % username))
+                if not os.path.exists(my_download_path):
+                    os.makedirs(my_download_path)
+                settings.download_dir = my_download_path
                 return True
             else:
                 print("用户名或密码错误")
                 return False
 
     def run(self):
+        '''
+        主程序入口
+        :return:
+        '''
         print("欢迎使用MyFTP服务^_^")
         try:
-            self.client.connect((settings.host, settings.port))
+            self.client.connect((settings.server_host, settings.server_port))
             while True:
                 if self.login():
                     self.check_transfer()
