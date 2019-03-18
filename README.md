@@ -1,5 +1,5 @@
 # MyFTP服务使用指南
-本服务可支持在Windows和Linux平台运行，启动前请进行必要的IP和端口配置。  
+本服务可支持在Windows和Linux平台运行，支持多用户并发运行，默认最大支持10个用户同时运行，启动前请进行必要的IP和端口配置。  
 服务端数据默认保存在：myftp/server/FTP_DATA  
 客户端数据默认保存在：myftp/client/{username}  
 
